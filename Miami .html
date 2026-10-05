@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#163a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ربحية ميامي">
+<title>ربحية مستشفى ميامي</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color:#17202a;background:#f3f6f9}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(#eef3f7,#f8fafc);min-height:100vh}
+.app{max-width:900px;margin:auto;padding:18px 16px 32px}
+.header{background:#163a5f;color:#fff;border-radius:22px;padding:20px;margin-bottom:14px}
+.header h1{font-size:26px;margin:0 0 5px}.header p{margin:0;opacity:.85;font-size:14px}
+.card{background:#fff;border:1px solid #dce3ea;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px rgba(20,40,60,.04)}
+.card h2{font-size:18px;margin:0 0 13px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.field label{display:block;font-size:13px;font-weight:700;margin:0 0 6px}
+input{width:100%;height:50px;border:1px solid #cbd5df;border-radius:12px;padding:8px 12px;font-size:18px;background:#fff;color:#17202a}
+input:focus{outline:3px solid #dbeafe;border-color:#2563eb}
+.section{border:1px solid #e2e8ee;border-radius:14px;padding:13px;margin-bottom:10px}
+.section-title{font-weight:800;font-size:16px;margin-bottom:9px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:#f5f8fb;border-radius:14px;padding:13px}.kpi .label{font-size:12px;color:#667085}.kpi .value{font-size:22px;font-weight:850;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 6px;border-bottom:1px solid #e7ebef;text-align:right}th{font-weight:800;color:#475467}
+.good{color:#087443;font-weight:800}.bad{color:#b42318;font-weight:800}.total{font-weight:850}
+.check{margin-top:12px;padding:11px;border-radius:12px;background:#f6f8fa;font-size:13px}
+.help{font-size:12px;color:#667085;line-height:1.7}
+
+.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.scenario-card{border:1px solid #e2e8ee;border-radius:14px;padding:12px;background:#fbfcfd}
+.scenario-card h3{font-size:14px;margin:0 0 9px}
+.scenario-card .mini{font-size:12px;color:#667085;margin-bottom:7px}
+.delta{font-weight:850;font-size:20px;margin-top:4px}
+.breakgood{color:#087443;font-weight:800}.breakbad{color:#b42318;font-weight:800}
+.small-table{font-size:12px}
+@media(max-width:620px){.scenario-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:700px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:430px){.grid{gap:8px}.app{padding:10px}.header{padding:17px}.header h1{font-size:23px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="header">
+<h1>ربحية مستشفى ميامي</h1>
+<p>حاسبة سريعة للحالات اليومية، التكاليف الثابتة، والصيدلية</p>
+</header>
+
+<section class="card">
+<h2>الإعدادات</h2>
+<div class="grid">
+<div class="field"><label>التكلفة الثابتة الشهرية (ج)</label><input id="fixed" type="number" min="0" value="800000"></div>
+<div class="field"><label>أيام الشهر</label><input id="days" type="number" min="1" value="30"></div>
+</div>
+</section>
+
+<section class="card">
+<h2>الأقسام</h2>
+<div id="departments"></div>
+</section>
+
+<section class="card">
+<h2>النتيجة الإجمالية</h2>
+<div class="kpis" id="kpis"></div>
+<div class="check" id="allocation"></div>
+</section>
+
+<section class="card">
+<h2>ربحية كل قسم</h2>
+<div style="overflow:auto">
+<table>
+<thead><tr><th>القسم</th><th>الإيراد</th><th>الثابت</th><th>الربح</th></tr></thead>
+<tbody id="table"></tbody>
+</table>
+</div>
+</section>
+
+<section class="card">
+<h2>نقطة التعادل لكل قسم</h2>
+<div style="overflow:auto">
+<table class="small-table">
+<thead><tr><th>القسم</th><th>هامش المساهمة/حالة</th><th>حالات التعادل/يوم</th><th>حالات التعادل/شهر</th><th>الإيراد عند التعادل</th></tr></thead>
+<tbody id="breakEvenTable"></tbody>
+</table>
+</div>
+<div class="help">للقسم: نقطة التعادل = التكلفة الثابتة المخصصة للقسم ÷ هامش المساهمة للحالة. الصيدلية تُحسب على أساس المبيعات الشهرية وهامش الربح.</div>
+</section>
+
+<section class="card">
+<h2>محاكاة زيادة الحالات والأسعار</h2>
+<div class="grid">
+<div class="field"><label>تغيير عدد الحالات %</label><input id="scenarioQ" type="number" value="10"></div>
+<div class="field"><label>تغيير الأسعار %</label><input id="scenarioP" type="number" value="10"></div>
+</div>
+<div class="scenario-grid" style="margin-top:11px">
+<div class="scenario-card"><h3>الأساس الحالي</h3><div class="mini">الإيراد / الربح / هامش الربح</div><div id="scBase"></div></div>
+<div class="scenario-card"><h3>زيادة الحالات فقط</h3><div class="mini">نفس الأسعار الحالية</div><div id="scQ"></div></div>
+<div class="scenario-card"><h3>زيادة الأسعار فقط</h3><div class="mini">نفس عدد الحالات الحالي</div><div id="scP"></div></div>
+<div class="scenario-card"><h3>زيادة الحالات والأسعار</h3><div class="mini">تطبيق النسبتين معًا</div><div id="scBoth"></div></div>
+</div>
+<div id="scenarioSummary" class="check"></div>
+</section>
+
+<section class="card">
+<h2>حساسية الربحية</h2>
+<div id="sensitivity" class="help"></div>
+</section>
+
+<section class="card help">
+<b>ملاحظات:</b><br>
+• جميع الأقسام تعتمد على <b>عدد الحالات/اليوم</b> وليس نسبة الإشغال.<br>
+• الصيدلية تعتمد على <b>المبيعات الشهرية + هامش الربح %</b>.<br>
+• مجموع نسب توزيع التكلفة الثابتة يجب أن يساوي <b>100%</b>.<br>
+• نقطة التعادل الإجمالية هي إيراد المبيعات المطلوب لتغطية التكلفة الثابتة.
+</section>
+</main>
+
+<script>
+const defs=[
+["العمليات والداخلي",7,3000,60,35],
+["العناية المركزة",4,0,60,35],
+["الحضانة",2,0,60,10],
+["العيادات",20,0,20,5],
+["المعمل",40,0,40,5],
+["الأشعة",0,0,30,5],
+["الطوارئ",0,0,50,2]
+];
+
+const $=id=>document.getElementById(id);
+const num=x=>Math.max(0,Number(x)||0);
+const money=x=>Math.round(x).toLocaleString("ar-EG")+" ج";
+
+$("departments").innerHTML=defs.map((d,i)=>`
+<div class="section">
+<div class="section-title">${d[0]}</div>
+<div class="grid">
+<div class="field"><label>الحالات / اليوم</label><input data-i="${i}" data-k="q" type="number" min="0" value="${d[1]}"></div>
+<div class="field"><label>إيراد الحالة (ج)</label><input data-i="${i}" data-k="p" type="number" min="0" value="${d[2]}"></div>
+<div class="field"><label>التكلفة المتغيرة %</label><input data-i="${i}" data-k="v" type="number" min="0" max="100" value="${d[3]}"></div>
+<div class="field"><label>نصيب الثابت %</label><input data-i="${i}" data-k="f" type="number" min="0" max="100" value="${d[4]}"></div>
+</div>
+</div>`).join("")+`
+<div class="section">
+<div class="section-title">الصيدلية</div>
+<div class="grid">
+<div class="field"><label>المبيعات الشهرية (ج)</label><input id="ps" type="number" min="0" value="50000"></div>
+<div class="field"><label>هامش الربح %</label><input id="pm" type="number" min="0" max="100" value="20"></div>
+<div class="field"><label>نصيب الثابت %</label><input id="pf" type="number" min="0" max="100" value="3"></div>
+</div>
+</div>`;
+
+function readModel(qMult=1,pMult=1){
+ const fixed=num($("fixed").value),days=Math.max(1,num($("days").value));
+ let revenue=0,variable=0,fixedAllocPct=0,rows=[],deptRows=[];
+ defs.forEach((d,i)=>{
+  const q=num(document.querySelector(`[data-i="${i}"][data-k="q"]`).value)*qMult;
+  const p=num(document.querySelector(`[data-i="${i}"][data-k="p"]`).value)*pMult;
+  const v=num(document.querySelector(`[data-i="${i}"][data-k="v"]`).value)/100;
+  const f=num(document.querySelector(`[data-i="${i}"][data-k="f"]`).value)/100;
+  const r=q*p*days,vc=r*v,fc=fixed*f,pr=r-vc-fc;
+  const cmPerCase=p*(1-v);
+  const beCasesPerMonth=cmPerCase>0?fc/cmPerCase:Infinity;
+  const beCasesPerDay=beCasesPerMonth/days;
+  const beRevenue=beCasesPerMonth*p;
+  revenue+=r;variable+=vc;fixedAllocPct+=f;
+  rows.push([d[0],r,fc,pr]);
+  deptRows.push({name:d[0],q,p,v,f,rev:r,vc,fc,profit:pr,cmPerCase,beCasesPerMonth,beCasesPerDay,beRevenue});
+ });
+ const ps=num($("ps").value)*qMult;
+ const pm=num($("pm").value)/100;
+ const pf=num($("pf").value)/100;
+ const phR=ps,phVC=ps*(1-pm),phFC=fixed*pf,phP=ps*pm-phFC;
+ const phContribution=ps*pm,phBreakEvenSales=pm>0?phFC/pm:Infinity;
+ revenue+=phR;variable+=phVC;fixedAllocPct+=pf;
+ rows.push(["الصيدلية",phR,phFC,phP]);
+ deptRows.push({name:"الصيدلية",rev:phR,vc:phVC,fc:phFC,profit:phP,cmPerCase:phContribution,beCasesPerMonth:null,beCasesPerDay:null,beRevenue:phBreakEvenSales,isPharmacy:true});
+ const contribution=revenue-variable,profit=contribution-fixed,cmPct=revenue?contribution/revenue:0;
+ return {fixed,days,revenue,variable,fixedAllocPct,contribution,profit,cmPct,breakEven:cmPct?fixed/cmPct:Infinity,marginPct:revenue?profit/revenue:0,rows,deptRows};
+}
+function fmtInf(x){return Number.isFinite(x)?money(x):"غير محسوبة"}
+function pct(x){return (x*100).toFixed(1)+"%"}
+function renderMain(m){
+ const ok=Math.abs(m.fixedAllocPct-1)<0.0001;
+ $("kpis").innerHTML=`
+ <div class="kpi"><div class="label">إجمالي الإيرادات</div><div class="value">${money(m.revenue)}</div></div>
+ <div class="kpi"><div class="label">هامش المساهمة</div><div class="value">${money(m.contribution)}</div></div>
+ <div class="kpi"><div class="label">صافي الربح</div><div class="value ${m.profit>=0?'good':'bad'}">${money(m.profit)}</div></div>
+ <div class="kpi"><div class="label">إيراد نقطة التعادل</div><div class="value">${fmtInf(m.breakEven)}</div></div>`;
+ $("allocation").innerHTML=`توزيع التكلفة الثابتة: <span class="${ok?'good':'bad'}">${pct(m.fixedAllocPct)}</span> — ${ok?"صحيح":"يجب تعديل النسب حتى تصل إلى 100%"}`;
+ $("table").innerHTML=m.rows.map(x=>`<tr><td>${x[0]}</td><td>${money(x[1])}</td><td>${money(x[2])}</td><td class="${x[3]>=0?'good':'bad'}">${money(x[3])}</td></tr>`).join("")+
+ `<tr class="total"><td>الإجمالي</td><td>${money(m.revenue)}</td><td>${money(m.fixed)}</td><td class="${m.profit>=0?'good':'bad'}">${money(m.profit)}</td></tr>`;
+}
+function renderBreakEven(m){
+ $("breakEvenTable").innerHTML=m.deptRows.map(d=>{
+  if(d.isPharmacy)return `<tr><td>${d.name}</td><td>${money(d.cmPerCase)} / شهر</td><td>—</td><td>${Number.isFinite(d.beRevenue)?money(d.beRevenue):"غير محسوبة"}</td><td>${Number.isFinite(d.beRevenue)?money(d.beRevenue):"—"}</td></tr>`;
+  const cls=d.cmPerCase>0?"breakgood":"breakbad";
+  return `<tr><td>${d.name}</td><td>${money(d.cmPerCase)}</td><td class="${cls}">${Number.isFinite(d.beCasesPerDay)?d.beCasesPerDay.toFixed(1):"غير ممكن"}</td><td>${Number.isFinite(d.beCasesPerMonth)?d.beCasesPerMonth.toFixed(0):"غير محسوبة"}</td><td>${Number.isFinite(d.beRevenue)?money(d.beRevenue):"—"}</td></tr>`;
+ }).join("");
+}
+function renderScenarioCard(id,m,base){
+ const delta=m.profit-base.profit,cls=delta>=0?"good":"bad";
+ $(id).innerHTML=`<div>الإيراد: <b>${money(m.revenue)}</b></div><div>الربح: <b class="${m.profit>=0?'good':'bad'}">${money(m.profit)}</b></div><div>هامش الربح: <b>${pct(m.marginPct)}</b></div><div class="delta ${cls}">${delta>=0?"+":""}${money(delta)}</div><div class="mini">التغير في الربح</div>`;
+}
+function renderScenarios(base){
+ const qPct=num($("scenarioQ").value)/100,pPct=num($("scenarioP").value)/100;
+ const mq=readModel(1+qPct,1),mp=readModel(1,1+pPct),mb=readModel(1+qPct,1+pPct);
+ renderScenarioCard("scBase",base,base);renderScenarioCard("scQ",mq,base);renderScenarioCard("scP",mp,base);renderScenarioCard("scBoth",mb,base);
+ const changes=[["زيادة الحالات",mq],["زيادة الأسعار",mp],["الحالتان معًا",mb]].sort((a,b)=>b[1].profit-a[1].profit);
+ const best=changes[0],worst=changes[changes.length-1];
+ $("scenarioSummary").innerHTML=`الأكثر تأثيرًا على الربح: <b>${best[0]}</b> (${best[1].profit-base.profit>=0?"+":""}${money(best[1].profit-base.profit)}). وأضعف سيناريو: <b>${worst[0]}</b> (${worst[1].profit-base.profit>=0?"+":""}${money(worst[1].profit-base.profit)}).`;
+}
+function renderSensitivity(base){
+ const levels=[-20,-10,10,20];
+ const rows=levels.map(v=>{
+  const mq=readModel(1+v/100,1),mp=readModel(1,1+v/100);
+  return `<tr><td>${v>0?"+":""}${v}%</td><td>${money(mq.profit-base.profit)}</td><td>${money(mp.profit-base.profit)}</td></tr>`;
+ }).join("");
+ $("sensitivity").innerHTML=`<div style="overflow:auto"><table><thead><tr><th>التغير</th><th>أثر تغير الحالات على الربح</th><th>أثر تغير الأسعار على الربح</th></tr></thead><tbody>${rows}</tbody></table></div><div style="margin-top:8px">القيم الموجبة تعني تحسن الربح، والسالبة تعني تراجع الربح مقارنة بالوضع الحالي. يفترض التحليل ثبات نسب التكلفة المتغيرة وثبات التكلفة الثابتة الشهرية.</div>`;
+}
+function calculate(){
+ const base=readModel();
+ renderMain(base);renderBreakEven(base);renderScenarios(base);renderSensitivity(base);
+}
+document.addEventListener("input",calculate);
+calculate();
+
+</script>
+</body>
+</html>
